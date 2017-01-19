@@ -12,7 +12,6 @@ from lib.neo_pixel_string import *
 LED_COUNT      = 8      # Number of LED pixels.
 LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
 
-
 brightness_schema = {
     "type" : "object",
     "properties" : {
@@ -78,7 +77,6 @@ if __name__ == '__main__':
 
 	client1 = mqtt.Client(str(mac) + "-python_client")    #create new instance
 	client1.on_connect = on_connect        #attach function to callback
-	# client1.on_message = on_message        #attach function to callback
 
 	client1.message_callback_add("saito/bed/neopixels/color", on_message_color)
 	client1.message_callback_add("saito/bed/neopixels/brightness", on_message_brightness)
@@ -87,29 +85,11 @@ if __name__ == '__main__':
 
 	client1.connect(broker_address)      #connect to broker
 	client1.loop_start()    #start the loop
-	client1.subscribe("saito/bed/neopixels/color")
-	client1.subscribe("saito/bed/neopixels/brightness")
-	# client1.publish("bioboost/temperature","12.33")
-
-	# time.sleep(5)
+	client1.subscribe("saito/bed/neopixels/+")
 
 	print ('Press Ctrl-C to quit.')
 	while True:
 		time.sleep(1)
-		# # Color wipe animations.
-		# colorWipe(strip, Color(255, 0, 0))  # Red wipe
-		# colorWipe(strip, Color(0, 255, 0))  # Blue wipe
-		# colorWipe(strip, Color(0, 0, 255))  # Green wipe
-		# # Theater chase animations.
-		# theaterChase(strip, Color(127, 127, 127))  # White theater chase
-		# theaterChase(strip, Color(127,   0,   0))  # Red theater chase
-		# theaterChase(strip, Color(  0,   0, 127))  # Blue theater chase
-		# # Rainbow animations.
-		# rainbow(strip)
-		# rainbowCycle(strip)
-		# theaterChaseRainbow(strip)
-
-
 
 	client1.disconnect()
 	client1.loop_stop()
