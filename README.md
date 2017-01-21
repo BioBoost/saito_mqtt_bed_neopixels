@@ -33,30 +33,25 @@ sudo pip install paho-mqtt
 
 Currently library defaults to GPIO18 (pin 12) on http://www.raspberry-pi-geek.com/howto/GPIO-Pinout-Rasp-Pi-1-Model-B-Rasp-Pi-2-Model-B
 
-## Mqtt
+## Home Assistant
 
-Currently script uses http://www.mqtt-dashboard.com/ as mqtt broker. Should be changed to our own broker later.
+Just add an MQTT JSON Light with following config:
 
-### Neopixel color topic
+```yaml
+# Enable mqtt
+mqtt:
+  broker: xxxxxxxxxxxxx
+  port: 8000
+  client_id: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  keepalive: 60
 
-Actual topic is `saito/bed/neopixels/color` and it expects a json string of following format:
-
-```json
-{
-  "red": 0,
-  "green": 0,
-  "blue": 0
-}
+light:
+  - platform: mqtt_json
+    name: "Saito RGB Light"
+    command_topic: "saito/bed/neopixels/set"
+    state_topic: "saito/bed/neopixels"
+    brightness: true
+    rgb: true
 ```
-where red, green and blue are values between 0 and 255.
 
-### Neopixel brightness
-
-Actual topic is `saito/bed/neopixels/brightness` and it expects a json string of following format:
-
-```json
-{
-  "brightness": 0
-}
-```
-where brightness is value between 0 and 255.
+and you are good to go.
