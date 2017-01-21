@@ -1,5 +1,3 @@
-import time
-
 import paho.mqtt.client as mqtt
 import time
 import json
@@ -11,85 +9,100 @@ from lib.neo_pixel_string import *
 # LED strip configuration:
 LED_COUNT      = 8      # Number of LED pixels.
 LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
+BROKER_ADDRESS = "10.0.0.20"        # broker.mqttdashboard.com
+BROKER_PORT = 8000                 # 1883
 
-brightness_schema = {
+full_state_schema = {
     "type" : "object",
     "properties" : {
-    	"brightness" : {"type": "number"}
-	},
-    "required": ["brightness"]
-}
-
-color_schema = {
-    "type" : "object",
-    "properties" : {
-        "red" : {"type" : "number"},
-	    "green" : {"type" : "number"},
-		"blue" : {"type" : "number"}
-    },
-    "required": ["red", "green", "blue"]
+        "state" : {"enum" : ["ON", "OFF"]},
+        "brightness" : {"type": "number", "minimum": 0, "maximum": 255 },
+        "color": {
+            "type" : "object",
+            "properties" : {
+                "r" : {"type": "number", "minimum": 0, "maximum": 255 },
+                "g" : {"type": "number", "minimum": 0, "maximum": 255 },
+                "b" : {"type": "number", "minimum": 0, "maximum": 255 }
+            },
+            "required": ["r", "g", "b"]
+        }
+    }
 }
 
 neopixelstring = None
 
-
 def on_connect(client, userdata, flags, rc):
-    m="Connected flags"+str(flags)+"result code "\
-    +str(rc)+"client1_id  "+str(client)
+    m = "Connected flags" + str(flags) + "result code " \
+        + str(rc) + "client1_id " + str(client)
     print(m)
 
-# {"red":255, "green":96, "blue":5}
-def on_message_color(client, userdata, message):
-	json_message = str(message.payload.decode("utf-8"))
-	print("message received: ", json_message)
+# This is an interface that is compatible with Home Assistant MQTT JSON Light
+def on_message_full_state(client, userdata, message):
+    json_message = str(message.payload.decode("utf-8"))
+    print("message received: ", json_message)
 
-	try:
-		data = json.loads(json_message)
-		validate(data, color_schema)
-		color = Color(data['green'], data['red'], data['blue'])
-		neopixelstring.set_color(color)
-	except exceptions.ValidationError:
-		print "Message failed validation"
-	except ValueError:
-		print "Invalid json string"
+    try:
+        data = json.loads(json_message)
+        validate(data, full_state_schema)
+        if (data.has_key('state')):
+            if (data['state'] == 'ON'):
+                neopixelstring.all_on()
+            else:
+                neopixelstring.all_off()
 
-# {"brightness": 80}
-def on_message_brightness(client, userdata, message):
-	json_message = str(message.payload.decode("utf-8"))
-	print("message received: ", json_message)
+        if (data.has_key('brightness')):
+            neopixelstring.set_brightness(data['brightness'])
 
-	try:
-		data = json.loads(json_message)
-		validate(data, brightness_schema)
-		neopixelstring.set_brightness(data['brightness'])
-	except exceptions.ValidationError:
-		print "Message failed validation"
-	except ValueError:
-		print "Invalid json string"
+        if (data.has_key('color')):
+            color = Color(data['color']['g'], data['color']['r'], data['color']['b'])
+            neopixelstring.set_color(color)
+
+        publish_state(client)
+
+    except exceptions.ValidationError:
+        print "Message failed validation"
+    except ValueError:
+        print "Invalid json string"
+
+def publish_state(client):
+    json_state = {
+        "brightness": neopixelstring.get_brightness(),
+        "state": "OFF" if neopixelstring.is_off() else "ON",
+        "color": {
+            "r": neopixelstring.get_color()['red'],
+            "g": neopixelstring.get_color()['green'],
+            "b": neopixelstring.get_color()['blue']
+        }
+    }
+
+    (status, mid) = client.publish("saito/bed/neopixels", json.dumps(json_state))
+    if status != 0:
+        print("Could not send state")
 
 # Main program logic follows:
 if __name__ == '__main__':
-	neopixelstring = NeoPixelString(LED_COUNT, LED_PIN)
+    neopixelstring = NeoPixelString(LED_COUNT, LED_PIN)
+    mac = get_mac()
 
-	mac = get_mac()
+    client1 = mqtt.Client(str(mac) + "-python_client")
+    client1.on_connect = on_connect
 
-	broker_address="broker.mqttdashboard.com"
+    # Home Assistant compatible
+    client1.message_callback_add("saito/bed/neopixels/set", on_message_full_state)
+    time.sleep(1)
 
-	client1 = mqtt.Client(str(mac) + "-python_client")    #create new instance
-	client1.on_connect = on_connect        #attach function to callback
+    client1.connect(BROKER_ADDRESS, BROKER_PORT)
+    client1.loop_start()
+    client1.subscribe("saito/bed/neopixels/set")
 
-	client1.message_callback_add("saito/bed/neopixels/color", on_message_color)
-	client1.message_callback_add("saito/bed/neopixels/brightness", on_message_brightness)
+    print ('Press Ctrl-C to quit.')
+    while True:
+        publish_state(client1)
+        time.sleep(600)
 
-	time.sleep(1)
-
-	client1.connect(broker_address)      #connect to broker
-	client1.loop_start()    #start the loop
-	client1.subscribe("saito/bed/neopixels/+")
-
-	print ('Press Ctrl-C to quit.')
-	while True:
-		time.sleep(1)
-
-	client1.disconnect()
-	client1.loop_stop()
+    # This should happen but it doesnt because CTRL-C kills process.
+    # Fix later
+    print "Disconnecting"
+    publish_state(client1)
+    client1.disconnect()
+    client1.loop_stop()
