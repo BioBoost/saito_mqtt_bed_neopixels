@@ -25,7 +25,7 @@ class NeoPixelString:
 
 		# Intialize the library (must be called once before other functions).
 		self.strip.begin()
-		self.all_on()
+		self.all_off()
 
 	def set_color(self, color):
 		self.color = color
