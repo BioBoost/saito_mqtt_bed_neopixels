@@ -52,9 +52,10 @@ class NeoPixelString:
 		return self.brightness
 
 	def get_color(self):
+		# Red and green seem te be reversed for some reason
 		blue = self.color % 256
-		green = (self.color >> 8) % 256
-		red = (self.color >> 16) % 256
+		red = (self.color >> 8) % 256
+		green = (self.color >> 16) % 256
 		return { 'red': red, 'green': green, 'blue': blue }
 
 	def is_off(self):
