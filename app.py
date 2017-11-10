@@ -50,29 +50,23 @@ def on_connect(client, userdata, flags, rc):
 
 # This is an interface that is compatible with Home Assistant MQTT JSON Light
 def on_message_full_state(client, userdata, message):
+    global json_message, loopflag, animation
     json_message = str(message.payload.decode("utf-8"))
     print("message received: ", json_message)
 
     try:
-        global loopflag, animation
         data = json.loads(json_message)
         validate(data, full_state_schema)
         if (data.has_key('state')):
             if (data['state'] == 'ON'):
                 neopixelstring.all_on()
             else:
-                if loopflag:
-                    loopflag = False
                 neopixelstring.all_off()
 
         if (data.has_key('brightness')):
-            if loopflag:
-                loopflag = False
             neopixelstring.set_brightness(data['brightness'])
 
         if (data.has_key('color')):
-            if loopflag:
-                loopflag = False
             # For some reason we need to switch r and g. Don't get it
             color = Color(data['color']['g'], data['color']['r'], data['color']['b'])
             neopixelstring.set_color(color)
@@ -91,6 +85,7 @@ def on_message_full_state(client, userdata, message):
                animation = 'theaterchase'
         else:
             animation = 'none'
+            loopflag = False
 
         publish_state(client)
 
@@ -132,6 +127,7 @@ if __name__ == '__main__':
     client1.loop_start()
     client1.subscribe("saito/bed/neopixels/set")
 
+    justoutofloop = False
     print ('Press Ctrl-C to quit.')
     while True:
         if loopflag and animation != 'none':
@@ -143,6 +139,9 @@ if __name__ == '__main__':
                neopixelstring.theaterChaseRainbow()
             elif (animation == 'colorwipe'):
                neopixelstring.colorWipe(Color(randint(0,255), randint(0,255), randint(0,255)))
+        if not loopflag and justoutofloop:
+            justoutofloop = False
+            client1.publish("saito/bed/neopixels/set", json_message, 0, False)
         time.sleep(.1)
 
     # This should happen but it doesnt because CTRL-C kills process.
