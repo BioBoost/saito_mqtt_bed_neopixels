@@ -5,6 +5,7 @@ from jsonschema import validate
 from jsonschema import exceptions
 from uuid import getnode as get_mac
 from lib.neo_pixel_string import *
+from random import *
 
 # LED strip configuration:
 LED_COUNT      = 8      # Number of LED pixels.
@@ -21,6 +22,7 @@ full_state_schema = {
     "type" : "object",
     "properties" : {
         "state" : {"enum" : ["ON", "OFF"]},
+        "effect" : {"enum" : ["rainbow", "rainbowcycle", "theaterchaserainbow", "colorwipe", "theaterchase"]},
         "brightness" : {"type": "number", "minimum": 0, "maximum": 255 },
         "color": {
             "type" : "object",
@@ -62,6 +64,18 @@ def on_message_full_state(client, userdata, message):
             # For some reason we need to switch r and g. Don't get it
             color = Color(data['color']['g'], data['color']['r'], data['color']['b'])
             neopixelstring.set_color(color)
+
+            if (data.has_key('effect')):
+            if (data['effect'] == 'rainbow'):
+               neopixelstring.rainbow()
+            elif (data['effect'] == 'rainbowcycle'):
+               neopixelstring.rainbowCycle();
+            elif (data['effect'] == 'theaterchaserainbow'):
+               neopixelstring.theaterChaseRainbow();
+            elif (data['effect'] == 'colorwipe'):
+               neopixelstring.colorWipe(Color(randint(0,255), randint(0,255), randint(0,255)));
+            elif (data['effect'] == 'theaterchase'):
+               neopixelstring.theaterChase(Color(randint(0,127), randint(0,127), randint(0,127)));
 
         publish_state(client)
 
