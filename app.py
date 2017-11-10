@@ -131,6 +131,7 @@ if __name__ == '__main__':
     print ('Press Ctrl-C to quit.')
     while True:
         if loopflag and animation != 'none':
+            justoutofloop = True
             if animation == 'rainbow':
                 neopixelstring.rainbow()
             elif (animation == 'rainbowcycle'):
