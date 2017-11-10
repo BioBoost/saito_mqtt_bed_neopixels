@@ -140,7 +140,7 @@ if __name__ == '__main__':
             elif (animation == 'colorwipe'):
                neopixelstring.colorWipe(Color(randint(0,255), randint(0,255), randint(0,255)))
             elif (animation == 'theaterchase'):
-               neopixelstring.theaterChase(strip, Color(randint(0,127), randint(0,127), randint(0,127)))
+               neopixelstring.theaterChase(Color(randint(0,127), randint(0,127), randint(0,127)))
         if not loopflag and justoutofloop:
             justoutofloop = False
             client1.publish("saito/bed/neopixels/set", json_message, 0, False)
