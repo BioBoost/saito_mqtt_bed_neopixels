@@ -5,6 +5,7 @@
 # Direct port of the Arduino NeoPixel library strandtest example.  Showcases
 # various animations on a strip of NeoPixels.
 from neopixel import *
+import time
 
 class NeoPixelString:
 	# LED strip configuration:
@@ -43,6 +44,7 @@ class NeoPixelString:
 		self.set_color(self.color)
 		self.state = NeoPixelString.ON
 
+	global wheel
 	def wheel(pos):
 		"""Generate rainbow colors across 0-255 positions."""
 		if pos < 85:
