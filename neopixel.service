@@ -1,0 +1,11 @@
+[Unit]
+Description=Neopixel Ring
+Wants=network.target mosquitto.service
+After=network.target mosquitto.service
+
+[Service]
+ExecStart=/home/pi/saito_mqtt_bed_neopixels/app.py
+Restart=always
+
+[Install]
+WantedBy=default.target
