@@ -20,6 +20,9 @@ QOS_STATE_PUBLISH = 1
     # Exactly once (2)
 RETAIN_STATE_PUBLISH = True
 
+loopflag = False
+animation = 'none'
+
 full_state_schema = {
     "type" : "object",
     "properties" : {
@@ -51,33 +54,43 @@ def on_message_full_state(client, userdata, message):
     print("message received: ", json_message)
 
     try:
+        global loopflag, animation
         data = json.loads(json_message)
         validate(data, full_state_schema)
         if (data.has_key('state')):
             if (data['state'] == 'ON'):
                 neopixelstring.all_on()
             else:
+                if loopflag:
+                    loopflag = False
                 neopixelstring.all_off()
 
         if (data.has_key('brightness')):
+            if loopflag:
+                loopflag = False
             neopixelstring.set_brightness(data['brightness'])
 
         if (data.has_key('color')):
+            if loopflag:
+                loopflag = False
             # For some reason we need to switch r and g. Don't get it
             color = Color(data['color']['g'], data['color']['r'], data['color']['b'])
             neopixelstring.set_color(color)
 
-            if (data.has_key('effect')):
+        if (data.has_key('effect')):
+            loopflag = True
             if (data['effect'] == 'rainbow'):
-               neopixelstring.rainbow()
+               animation = 'rainbow'
             elif (data['effect'] == 'rainbowcycle'):
-               neopixelstring.rainbowCycle();
+               animation = 'rainbowcycle'
             elif (data['effect'] == 'theaterchaserainbow'):
-               neopixelstring.theaterChaseRainbow();
+               animation = 'theaterchaserainbow'
             elif (data['effect'] == 'colorwipe'):
-               neopixelstring.colorWipe(Color(randint(0,255), randint(0,255), randint(0,255)));
+               animation = 'colorwipe'
             elif (data['effect'] == 'theaterchase'):
-               neopixelstring.theaterChase(Color(randint(0,127), randint(0,127), randint(0,127)));
+               animation = 'theaterchase'
+        else:
+            animation = 'none'
 
         publish_state(client)
 
@@ -121,8 +134,16 @@ if __name__ == '__main__':
 
     print ('Press Ctrl-C to quit.')
     while True:
-        # publish_state(client1)
-        time.sleep(600)
+        if loopflag and animation != 'none':
+            if animation == 'rainbow':
+                neopixelstring.rainbow()
+            elif (animation == 'rainbowcycle'):
+               neopixelstring.rainbowCycle()
+            elif (animation == 'theaterchaserainbow'):
+               neopixelstring.theaterChaseRainbow()
+            elif (animation == 'colorwipe'):
+               neopixelstring.colorWipe(Color(randint(0,255), randint(0,255), randint(0,255)))
+        time.sleep(.1)
 
     # This should happen but it doesnt because CTRL-C kills process.
     # Fix later
