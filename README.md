@@ -53,6 +53,8 @@ light:
   state_topic: "saito/bed/neopixels"
   brightness: true
   rgb: true
+  effect: true
+  effect_list: [rainbow, rainbowcycle, theaterchaserainbow, colorwipe, theaterchase]
 ```
 
 and you are good to go.
@@ -67,6 +69,7 @@ State and commands are passed using json:
     "b": 255,
     "r": 255
   },
+  "effect": "rainbow",
   "transition": 2,
   "state": "ON"
 }
@@ -81,4 +84,15 @@ sudo su
 pm2 startup
 pm2 start app.py --name saito_bed_neopixels
 pm2 save
+```
+
+Or systemd
+
+```shell
+chmod +x app.py
+
+sudo su
+cp neopixel.service /etc/systemd/system
+systemctl enable neopixel.service
+systemctl start neopixel.service
 ```

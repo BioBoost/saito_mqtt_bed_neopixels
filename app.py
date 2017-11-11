@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import paho.mqtt.client as mqtt
 import time
 import json
@@ -5,6 +7,7 @@ from jsonschema import validate
 from jsonschema import exceptions
 from uuid import getnode as get_mac
 from lib.neo_pixel_string import *
+from random import *
 
 # LED strip configuration:
 LED_COUNT      = 8      # Number of LED pixels.
@@ -17,10 +20,14 @@ QOS_STATE_PUBLISH = 1
     # Exactly once (2)
 RETAIN_STATE_PUBLISH = True
 
+loopflag = False
+animation = 'none'
+
 full_state_schema = {
     "type" : "object",
     "properties" : {
         "state" : {"enum" : ["ON", "OFF"]},
+        "effect" : {"enum" : ["rainbow", "rainbowcycle", "theaterchaserainbow", "colorwipe", "theaterchase"]},
         "brightness" : {"type": "number", "minimum": 0, "maximum": 255 },
         "color": {
             "type" : "object",
@@ -43,6 +50,7 @@ def on_connect(client, userdata, flags, rc):
 
 # This is an interface that is compatible with Home Assistant MQTT JSON Light
 def on_message_full_state(client, userdata, message):
+    global json_message, loopflag, animation
     json_message = str(message.payload.decode("utf-8"))
     print("message received: ", json_message)
 
@@ -62,6 +70,22 @@ def on_message_full_state(client, userdata, message):
             # For some reason we need to switch r and g. Don't get it
             color = Color(data['color']['g'], data['color']['r'], data['color']['b'])
             neopixelstring.set_color(color)
+
+        if (data.has_key('effect')):
+            loopflag = True
+            if (data['effect'] == 'rainbow'):
+               animation = 'rainbow'
+            elif (data['effect'] == 'rainbowcycle'):
+               animation = 'rainbowcycle'
+            elif (data['effect'] == 'theaterchaserainbow'):
+               animation = 'theaterchaserainbow'
+            elif (data['effect'] == 'colorwipe'):
+               animation = 'colorwipe'
+            elif (data['effect'] == 'theaterchase'):
+               animation = 'theaterchase'
+        else:
+            animation = 'none'
+            loopflag = False
 
         publish_state(client)
 
@@ -103,10 +127,25 @@ if __name__ == '__main__':
     client1.loop_start()
     client1.subscribe("saito/bed/neopixels/set")
 
+    justoutofloop = False
     print ('Press Ctrl-C to quit.')
     while True:
-        # publish_state(client1)
-        time.sleep(600)
+        if loopflag and animation != 'none':
+            justoutofloop = True
+            if animation == 'rainbow':
+                neopixelstring.rainbow()
+            elif (animation == 'rainbowcycle'):
+               neopixelstring.rainbowCycle()
+            elif (animation == 'theaterchaserainbow'):
+               neopixelstring.theaterChaseRainbow()
+            elif (animation == 'colorwipe'):
+               neopixelstring.colorWipe(Color(randint(0,255), randint(0,255), randint(0,255)))
+            elif (animation == 'theaterchase'):
+               neopixelstring.theaterChase(Color(randint(0,127), randint(0,127), randint(0,127)))
+        if not loopflag and justoutofloop:
+            justoutofloop = False
+            client1.publish("saito/bed/neopixels/set", json_message, 0, False)
+        time.sleep(.1)
 
     # This should happen but it doesnt because CTRL-C kills process.
     # Fix later
